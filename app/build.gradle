@@ -4,16 +4,33 @@ plugins {
 }
 
 android {
-    compileSdk 32
+    compileSdk 33
+
+    splits {
+        abi {
+            enable true
+            reset()
+            include "armeabi-v7a",'arm64-v8a',"x86","x86_64"
+            universalApk true
+        }
+    }
+
+
 
     defaultConfig {
         applicationId "com.augray.siftandroid"
         minSdk 23
-        targetSdk 32
+        targetSdk 33
         versionCode 1
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        externalNativeBuild {
+            cmake {
+                cppFlags ''
+                arguments "-DANDROID_STL=c++_shared"
+            }
+        }
     }
 
     sourceSets{
@@ -29,8 +46,8 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
     kotlinOptions {
         jvmTarget = '1.8'
@@ -43,6 +60,23 @@ android {
             path file('src/main/cpp/CMakeLists.txt')
             version '3.18.1'
         }
+    }
+}
+
+ext.versionCodes = ['armeabi-v7a': 4, 'arm64-v8a': 5, 'x86': 7, 'x86_64': 8]
+import com.android.build.OutputFile
+// For each APK output variant, override versionCode with a combination
+// of ABI APK value * 1000 + defaultConfig.versionCode
+android.applicationVariants.all { variant ->
+// assign different version code for each output
+    variant.outputs.each { output ->
+        def abiFilter = output.getFilter(OutputFile.ABI)
+        def abiMultiplier = 0
+        if (abiFilter != null) {
+            abiMultiplier = project.ext.versionCodes.get(abiFilter)
+        }
+        output.versionCodeOverride =
+                abiMultiplier * 1000 + android.defaultConfig.versionCode
     }
 }
 
